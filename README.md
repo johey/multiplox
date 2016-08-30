@@ -13,3 +13,6 @@ I've been thinking of different solutions to the problem, finally coming up with
 * Breakout cable identify itself, letting the plox unit know details about the system
 * Single power source shared between all nodes in the multiplox network
 * ...
+
+## Implementation
+A plox unit consists of an Arduino and an MCP2515 CAN module as SPI slave. To the Arduino is a DB25 female breakout connector and to the MCP2515 are two RJ45 connectors for CAN BUS and power.
