@@ -16,3 +16,5 @@ I've been thinking of different solutions to the problem, finally coming up with
 
 ## Implementation
 A plox unit consists of an Arduino and an MCP2515 CAN module as SPI slave. To the Arduino is a DB25 female breakout connector and to the MCP2515 are two RJ45 connectors for CAN BUS and power.
+
+Using https://github.com/coryjfowler/MCP_CAN_lib for CAN communication.
