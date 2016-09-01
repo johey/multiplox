@@ -4,6 +4,9 @@
 #include <mcp_can.h>
 #include <SPI.h>
 
+#define MODE 0        // 0: hooks up to controllers
+                      // 1: hooks up to base unit
+
 #define CAN0_INT 2    // Set INT to pin 2
 
 #define CTR_CLOCK 3   // Controller clock pin
@@ -17,6 +20,10 @@
 #define CLOCKS 15     // Number of pulses to send to controllers
 #define DATA_WIDTH 2  // Number of bytes read from each controller
 
+long unsigned int rxId;
+unsigned char len = 0;
+unsigned char rxBuf[8];
+char msgString[128];                        // Array to store serial string
 MCP_CAN CAN0(10);     // Set CS to pin 10
 
 unsigned int g_joy_data[JOYS];
@@ -35,17 +42,26 @@ void setup()
     CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
     pinMode(CAN0_INT, INPUT);   // Configuring pin for /INT input
 
-    pinMode(CTR_LATCH, OUTPUT);
-    pinMode(CTR_CLOCK, OUTPUT);
-    pinMode(CTR_DATA, INPUT);
+    if (MODE == 0)
+    {
+        pinMode(CTR_LATCH, OUTPUT);
+        pinMode(CTR_CLOCK, OUTPUT);
+        pinMode(CTR_DATA, INPUT);
 
-    digitalWrite(CTR_LATCH, LOW);
-    digitalWrite(CTR_CLOCK, HIGH);
+        digitalWrite(CTR_LATCH, LOW);
+        digitalWrite(CTR_CLOCK, HIGH);
+    }
+    else {
+        pinMode(CTR_LATCH, INPUT);
+        pinMode(CTR_CLOCK, INPUT);
+        pinMode(CTR_DATA, OUTPUT);
+
+        digitalWrite(CTR_DATA, HIGH);
+    }
+
 }
 
-byte data[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-
-// We cannot use shiftIn() function from arduino, as we need to be able to do things in parallell.
+// We cannot use shiftIn() function from arduino, as we need to be able to do things in parallel.
 boolean read_controllers()
 {
     unsigned int joy_data[JOYS] = {0, 0, 0, 0};
@@ -81,9 +97,13 @@ boolean read_controllers()
     return changed;
 }
 
+boolean send_baseunit()
+{
+}
+
 void loop()
 {
-    if (read_controllers())
+    if (MODE == 0 && read_controllers())
     {
         // Convert joystick data from 32 bit int to 8 bit data array
         for (int j = 0; j < JOYS; j++)
@@ -102,6 +122,35 @@ void loop()
             Serial.println("Message Sent Successfully!");
         } else {
             Serial.println("Error Sending Message...");
+        }
+    }
+    else 
+    {
+        if (send_baseunit())
+        {
+            if(!digitalRead(CAN0_INT))                         // If CAN0_INT pin is low, read receive buffer
+            {
+                CAN0.readMsgBuf(&rxId, &len, rxBuf);      // Read data: len = data length, buf = data byte(s)
+
+                if((rxId & 0x80000000) == 0x80000000)     // Determine if ID is standard (11 bits) or extended (29 bits)
+                    sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), len);
+                else
+                    sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
+
+                Serial.print(msgString);
+
+                if((rxId & 0x40000000) == 0x40000000){    // Determine if message is a remote request frame.
+                    sprintf(msgString, " REMOTE REQUEST FRAME");
+                    Serial.print(msgString);
+                } else {
+                    for(byte i = 0; i<len; i++){
+                        sprintf(msgString, " 0x%.2X", rxBuf[i]);
+                        Serial.print(msgString);
+                    }
+                }
+
+                Serial.println();
+            }
         }
     }
 }
