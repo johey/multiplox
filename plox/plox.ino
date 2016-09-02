@@ -73,7 +73,7 @@ void setup()
 // We cannot use shiftIn() function from arduino, as we need to be able to do things in parallel.
 boolean read_controllers()
 {
-    unsigned int joy_data[JOYS];
+    unsigned int joy_data[JOYS] = {0,0};
     byte joy_pin[4] = {CTR_DATA_0, CTR_DATA_1, CTR_DATA_2, CTR_DATA_3};
     boolean changed = false;
 
@@ -86,8 +86,9 @@ boolean read_controllers()
         digitalWrite(CTR_CLOCK, LOW);
         for (int i = 0; i < JOYS; i++)
         {
-            //joy_data[i] << 1;
+            joy_data[i] << 1;
             //joy_data[i] |= digitalRead(joy_pin[i]);
+            joy_data[i] |= !digitalRead(CTR_DATA_0);
         }
         //delayMicroseconds(6);
         digitalWrite(CTR_CLOCK, HIGH);
@@ -116,25 +117,28 @@ boolean send_baseunit()
 
 void loop()
 {
-    if (MODE == 0 && read_controllers())
+    if (MODE == 0)
     {
-        // Convert joystick data from 32 bit int to 8 bit data array
-        for (int j = 0; j < JOYS; j++)
+        if (read_controllers())
         {
-            int joy_data = g_joy_data[0];
-            for (int i = 0; i < DATA_WIDTH ; i++)
+            // Convert joystick data from 32 bit int to 8 bit data array
+            for (int j = 0; j < JOYS; j++)
             {
-                g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
-                joy_data >> 8;
+                int joy_data = g_joy_data[0];
+                for (int i = 0; i < DATA_WIDTH ; i++)
+                {
+                    g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
+                    joy_data >> 8;
+                }
             }
-        }
-
-        // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
-        byte sndStat = CAN0.sendMsgBuf(0x100, 0, JOYS * DATA_WIDTH, g_can_data);
-        if(sndStat == CAN_OK){
-            Serial.println("Message Sent Successfully!");
-        } else {
-            Serial.println("Error Sending Message...");
+    
+            // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
+            byte sndStat = CAN0.sendMsgBuf(0x100, 0, JOYS * DATA_WIDTH, g_can_data);
+            if(sndStat == CAN_OK){
+                Serial.println("Message Sent Successfully!");
+            } else {
+                Serial.println("Error Sending Message...");
+            }
         }
         delay(10);
     }
