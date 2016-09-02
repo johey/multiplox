@@ -86,17 +86,17 @@ boolean read_controllers()
         digitalWrite(CTR_CLOCK, LOW);
         for (int i = 0; i < JOYS; i++)
         {
-            joy_data[i] << 1;
-            //joy_data[i] |= digitalRead(joy_pin[i]);
-            joy_data[i] |= !digitalRead(CTR_DATA_0);
+            joy_data[i] <<= 1;
+            joy_data[i] |= !digitalRead(joy_pin[i]);
+            //joy_data[i] |= !digitalRead(CTR_DATA_0);
         }
         //delayMicroseconds(6);
         digitalWrite(CTR_CLOCK, HIGH);
         //delayMicroseconds(6);
         
     }
-    sprintf(msgString, "joy_data(0): 0x%x", joy_data[0]);
-    Serial.println(msgString);
+    //sprintf(msgString, "joy_data(0): 0x%x", joy_data[0]);
+    //Serial.println(msgString);
             
     for (int i = 0; i < JOYS; i++)
     {
@@ -124,12 +124,15 @@ void loop()
             // Convert joystick data from 32 bit int to 8 bit data array
             for (int j = 0; j < JOYS; j++)
             {
-                int joy_data = g_joy_data[0];
-                for (int i = 0; i < DATA_WIDTH ; i++)
+                int joy_data = g_joy_data[j];
+                for (int i = DATA_WIDTH - 1; i >= 0; i--)
                 {
                     g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
-                    joy_data >> 8;
+                    joy_data >>= 8;
                 }
+                sprintf(msgString, "joy_data(%d): 0x%x", j, g_joy_data[j]);
+                Serial.println(msgString);
+
             }
     
             // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
