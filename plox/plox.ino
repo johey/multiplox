@@ -46,7 +46,10 @@ void setup()
     {
         pinMode(CTR_LATCH, OUTPUT);
         pinMode(CTR_CLOCK, OUTPUT);
-        pinMode(CTR_DATA, INPUT);
+        pinMode(CTR_DATA_0, INPUT);
+        pinMode(CTR_DATA_1, INPUT);
+        pinMode(CTR_DATA_2, INPUT);
+        pinMode(CTR_DATA_3, INPUT);
 
         digitalWrite(CTR_LATCH, LOW);
         digitalWrite(CTR_CLOCK, HIGH);
@@ -54,9 +57,15 @@ void setup()
     else {
         pinMode(CTR_LATCH, INPUT);
         pinMode(CTR_CLOCK, INPUT);
-        pinMode(CTR_DATA, OUTPUT);
+        pinMode(CTR_DATA_0, OUTPUT);
+        pinMode(CTR_DATA_1, OUTPUT);
+        pinMode(CTR_DATA_2, OUTPUT);
+        pinMode(CTR_DATA_3, OUTPUT);
 
-        digitalWrite(CTR_DATA, HIGH);
+        digitalWrite(CTR_DATA_0, HIGH);
+        digitalWrite(CTR_DATA_1, HIGH);
+        digitalWrite(CTR_DATA_2, HIGH);
+        digitalWrite(CTR_DATA_3, HIGH);
     }
 
 }
@@ -64,8 +73,8 @@ void setup()
 // We cannot use shiftIn() function from arduino, as we need to be able to do things in parallel.
 boolean read_controllers()
 {
-    unsigned int joy_data[JOYS] = {0, 0, 0, 0};
-    byte joy_pin[4] = {CTR_DATA_0, CRT_DATA_1, CRT_DATA_2, CTR_DATA_3};
+    unsigned int joy_data[JOYS];
+    byte joy_pin[4] = {CTR_DATA_0, CTR_DATA_1, CTR_DATA_2, CTR_DATA_3};
     boolean changed = false;
 
     digitalWrite(CTR_LATCH, HIGH);
@@ -74,17 +83,20 @@ boolean read_controllers()
     delayMicroseconds(6);
     for (int j = 0; j < CLOCKS; j++)
     {
-        digitalWrite(CRT_CLOCK, LOW);
+        digitalWrite(CTR_CLOCK, LOW);
         for (int i = 0; i < JOYS; i++)
         {
-            data[i] << 1;
-            data[i] |= digitalRead(joy_pin[i]);
+            //joy_data[i] << 1;
+            //joy_data[i] |= digitalRead(joy_pin[i]);
         }
-        delayMicroseconds(6);
-        digitalWrite(CRT_CLOCK, HIGH);
-        delayMicroseconds(6);
+        //delayMicroseconds(6);
+        digitalWrite(CTR_CLOCK, HIGH);
+        //delayMicroseconds(6);
+        
     }
-
+    sprintf(msgString, "joy_data(0): 0x%x", joy_data[0]);
+    Serial.println(msgString);
+            
     for (int i = 0; i < JOYS; i++)
     {
         if (g_joy_data[i] != joy_data[i])
@@ -124,6 +136,7 @@ void loop()
         } else {
             Serial.println("Error Sending Message...");
         }
+        delay(10);
     }
     else 
     {
