@@ -119,6 +119,7 @@ boolean send_baseunit()
             joy_data[0] <<= 1; // shift data
             if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0;
             else PORTD |= CTR_DATA_0;
+            delayMicroseconds(10);
             while (PIND & CTR_CLOCK); // wait for clock high
         }
         //*/
