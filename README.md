@@ -27,18 +27,26 @@ Communication between plox units is based on CAN with standard 11 bits ID and up
 |------|-------------------------------------------------------|
 | 0-3  | Sending unit ID. Lower has priority.                  |
 | 4-7  | Receiving unit ID. Use sending unit ID for broadcast. |
-| 8-10 | Message type.                                         |
+| 8    | Message Type: 0 = _Into_, 1 = _Action_                |
+| 9-10 | Controller number 0, 1, 2 or 3.                       |
 
-| Message Type | Description       |
-|-------------:|-------------------|
-| 0            | Controller 0 data |
-| 1            | Controller 1 data |
-| 2            | Controller 2 data |
-| 3            | Controller 3 data |
-| 4            |                   |
-| 5            |                   |
-| 6            |                   |
-| 7            |                   |
+The Message Type can be either _Meta_ or _Action_. _Meta_ is used for handshaking, configuration, status messages etc, while _Action_ is the actual controller data.
+
+_Buttons_ has a defined set of digital and analog buttons in a fixed order. Any base unit implementing the _ protocol can be fully or partly controlled by any standard controller. Not all controllers have all buttons included in the standard set. In those cases, the present subset will be implemented while the missing buttons will be unavailable. 
+
+Contrary, some controllers have other buttons or features not defined in the standard protocol. If there is an intersection between the standard definition and the present buttons, the controller can still send a standard message. All other signals need to be sent with the special protocol type. This means 
 
 ### Data
 
+## Configuration
+A Multiplox network consists of at least two and at most 16 units. Each unit needs a unique ID between 0 to 15. To setup the unit IDs, you 
+
+1) connect all units to the CAN buss
+2) press and hold the plox button for 10 seconds, until the led is starting to flash
+3) press the plox button of the next unit, which will start flashing
+4) if there is another plox unit, repeat from 3)
+5) finally, press the plox button of the first unit again to confirm the configuration (all units should stop flasing).
+
+The ID will be saved into the EEPROM of all plox units you have included in the configuration. Please note that any plox units you fail to configure will keep its' old ID, which might lead to ID conflicts in the network. This will not be detected as an error by the system, but there will be undefined behavior in the network.
+
+Please reconfigure the network every time you make a change, or if you experience any strange behavior. 
