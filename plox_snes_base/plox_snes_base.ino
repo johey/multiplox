@@ -4,9 +4,6 @@
 #include <mcp_can.h>
 #include <SPI.h>
 
-#define MODE 1        // 0: hooks up to controllers
-// 1: hooks up to base unit
-
 #define CAN0_INT 2    // Set INT to pin 2
 
 #define CTR_CLOCK  0b00010000   // Controller clock pin
@@ -61,104 +58,33 @@ void setup()
   noInterrupts();
 }
 
-// We cannot use shiftIn() function from arduino, as we need to be able to do things in parallel.
-boolean read_controllers()
-{
-  unsigned int joy_data[JOYS] = {0,0};
-  byte joy_pin[4] = {CTR_DATA_0, CTR_DATA_1, CTR_DATA_2, CTR_DATA_3};
-  boolean changed = false;
-
-  digitalWrite(CTR_LATCH, HIGH);
-  delayMicroseconds(12);
-  digitalWrite(CTR_LATCH, LOW);
-  delayMicroseconds(6);
-  for (int j = 0; j < CLOCKS; j++)
-  {
-    digitalWrite(CTR_CLOCK, LOW);
-    for (int i = 0; i < JOYS; i++)
-    {
-      joy_data[i] <<= 1;
-      joy_data[i] |= !digitalRead(joy_pin[i]);
-      //joy_data[i] |= !digitalRead(CTR_DATA_0);
-    }
-    //delayMicroseconds(6);
-    digitalWrite(CTR_CLOCK, HIGH);
-    //delayMicroseconds(6);
-
-  }
-  //sprintf(msgString, "joy_data(0): 0x%x", joy_data[0]);
-  //Serial.println(msgString);
-
-  for (int i = 0; i < JOYS; i++)
-  {
-    if (g_joy_data[i] != joy_data[i])
-    {
-      g_joy_data[i] = joy_data[i];
-      changed = true;
-    }
-  }
-
-  return changed;
-}
-
 boolean send_baseunit()
 {
   unsigned int joy_data[JOYS];
   byte joy_pin[4] = {CTR_DATA_0, CTR_DATA_1, CTR_DATA_2, CTR_DATA_3};
 
+  if (!(PIND & CTR_LATCH))
+    return false;
+
   joy_data[0] = g_joy_data[0];
-  //if (digitalRead(CTR_LATCH)) {
-  if (PIND & CTR_LATCH) {
-    //sprintf(msgString, "joydata: %x", j, g_joy_data[j]);
-    //Serial.println(msgString);
-    if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0; // write first data bit
+
+  if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0; // write first data bit
+  else PORTD |= CTR_DATA_0;
+  while (PIND & CTR_LATCH); // wait for latch to finish
+  for (int i = 0; i < CLOCKS; i++) {
+    while (!(PIND & CTR_CLOCK)); // wait for clock low
+    joy_data[0] <<= 1; // shift data
+    if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0;
     else PORTD |= CTR_DATA_0;
-    while (PIND & CTR_LATCH); // wait for latch to finish
-    for (int i = 0; i < CLOCKS; i++) {
-      while (!(PIND & CTR_CLOCK)); // wait for clock low
-      joy_data[0] <<= 1; // shift data
-      if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0;
-      else PORTD |= CTR_DATA_0;
-      delayMicroseconds(10);
-      while (PIND & CTR_CLOCK); // wait for clock high
-    }
-    //*/
+    delayMicroseconds(10);
+    while (PIND & CTR_CLOCK); // wait for clock high
   }
+
   return true;
 }
 
 void loop()
 {
-  if (MODE == 0)
-  {
-    if (read_controllers())
-    {
-      // Convert joystick data from 32 bit int to 8 bit data array
-      for (int j = 0; j < JOYS; j++)
-      {
-        int joy_data = g_joy_data[j];
-        for (int i = DATA_WIDTH - 1; i >= 0; i--)
-        {
-          g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
-          joy_data >>= 8;
-        }
-        sprintf(msgString, "joy_data(%d): 0x%x", j, g_joy_data[j]);
-        Serial.println(msgString);
-
-      }
-
-      // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
-      byte sndStat = CAN0.sendMsgBuf(0x100, 0, JOYS * DATA_WIDTH, g_can_data);
-      if(sndStat == CAN_OK){
-        Serial.println("Message Sent Successfully!");
-      } else {
-        Serial.println("Error Sending Message...");
-      }
-    }
-    delay(10);
-  }
-  else 
-  {//*
     //if(!digitalRead(CAN0_INT))                         // If CAN0_INT pin is low, read receive buffer
     if (!(PIND & 0b00000100))
     {
@@ -198,6 +124,5 @@ void loop()
     {
     }
 
-  }
 }
 
