@@ -6,8 +6,8 @@
 
 #define CAN0_INT 2    // Set INT to pin 2
 
-#define CTR_CLOCK  0b00010000   // Controller clock pin
-#define CTR_LATCH  0b00001000   // Controller latch pin
+#define CTR_CLOCK  0b00001000   // Controller clock pin
+#define CTR_LATCH  0b00010000   // Controller latch pin
 #define CTR_DATA_0 0b00100000  // Controller 0 data pin
 #define CTR_DATA_1 6  // Controller 1 data pin
 #define CTR_DATA_2 7  // Controller 2 data pin
@@ -39,41 +39,38 @@ void setup()
   CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
   pinMode(CAN0_INT, INPUT);   // Configuring pin for /INT input
 
-  pinMode(CTR_LATCH, OUTPUT);
-  pinMode(CTR_CLOCK, OUTPUT);
-  pinMode(CTR_DATA_0, INPUT);
-  pinMode(CTR_DATA_1, INPUT);
-  pinMode(CTR_DATA_2, INPUT);
-  pinMode(CTR_DATA_3, INPUT);
-
-  digitalWrite(CTR_LATCH, LOW);
-  digitalWrite(CTR_CLOCK, HIGH);
+  DDRD |= 0b11100000;
+  PORTD |= 0b11100000;
   noInterrupts();
 }
 
 // We cannot use shiftIn() function from arduino, as we need to be able to do things in parallel.
 boolean read_controllers()
 {
-  unsigned int joy_data[JOYS] = {0,0};
+  unsigned int joy_data[4] = {0, 0, 0, 0};
   byte joy_pin[4] = {CTR_DATA_0, CTR_DATA_1, CTR_DATA_2, CTR_DATA_3};
   boolean changed = false;
 
-  digitalWrite(CTR_LATCH, HIGH);
+  //digitalWrite(CTR_LATCH, HIGH);
+  PORTD |= CTR_LATCH;
   delayMicroseconds(12);
-  digitalWrite(CTR_LATCH, LOW);
+  //digitalWrite(CTR_LATCH, LOW);
+  PORTD &= ~CTR_LATCH;
   delayMicroseconds(6);
   for (int j = 0; j < CLOCKS; j++)
   {
-    digitalWrite(CTR_CLOCK, LOW);
+    //digitalWrite(CTR_CLOCK, LOW);
+    PORTD &= ~CTR_CLOCK;
     for (int i = 0; i < JOYS; i++)
     {
       joy_data[i] <<= 1;
-      joy_data[i] |= !digitalRead(joy_pin[i]);
-      //joy_data[i] |= !digitalRead(CTR_DATA_0);
+      //joy_data[i] |= !digitalRead(joy_pin[i]);
+      if (PIND & joy_pin[i]) joy_data[i] &= ~1; else joy_data[i] |= 1;
     }
-    //delayMicroseconds(6);
-    digitalWrite(CTR_CLOCK, HIGH);
-    //delayMicroseconds(6);
+    delayMicroseconds(6);
+    //digitalWrite(CTR_CLOCK, HIGH);
+    PORTD |= CTR_CLOCK;
+    delayMicroseconds(6);
 
   }
   //sprintf(msgString, "joy_data(0): 0x%x", joy_data[0]);
@@ -104,17 +101,17 @@ void loop()
         g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
         joy_data >>= 8;
       }
-      sprintf(msgString, "joy_data(%d): 0x%x", j, g_joy_data[j]);
-      Serial.println(msgString);
+      //sprintf(msgString, "joy_data(%d): 0x%x", j, g_joy_data[j]);
+      //Serial.println(msgString);
 
     }
 
     // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
     byte sndStat = CAN0.sendMsgBuf(0x100, 0, JOYS * DATA_WIDTH, g_can_data);
-    if(sndStat == CAN_OK){
-      Serial.println("Message Sent Successfully!");
+    if(sndStat == CAN_OK) {
+      //Serial.println("Message Sent Successfully!");
     } else {
-      Serial.println("Error Sending Message...");
+      //Serial.println("Error Sending Message...");
     }
   }
 }

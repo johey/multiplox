@@ -6,8 +6,8 @@
 
 #define CAN0_INT 2    // Set INT to pin 2
 
-#define CTR_CLOCK  0b00010000   // Controller clock pin
-#define CTR_LATCH  0b00001000   // Controller latch pin
+#define CTR_CLOCK  0b00001000   // Controller clock pin
+#define CTR_LATCH  0b00010000   // Controller latch pin
 #define CTR_DATA_0 0b00100000  // Controller 0 data pin
 #define CTR_DATA_1 6  // Controller 1 data pin
 #define CTR_DATA_2 7  // Controller 2 data pin
@@ -39,22 +39,8 @@ void setup()
   CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
   pinMode(CAN0_INT, INPUT);   // Configuring pin for /INT input
 
-  if (MODE == 0)
-  {
-    pinMode(CTR_LATCH, OUTPUT);
-    pinMode(CTR_CLOCK, OUTPUT);
-    pinMode(CTR_DATA_0, INPUT);
-    pinMode(CTR_DATA_1, INPUT);
-    pinMode(CTR_DATA_2, INPUT);
-    pinMode(CTR_DATA_3, INPUT);
-
-    digitalWrite(CTR_LATCH, LOW);
-    digitalWrite(CTR_CLOCK, HIGH);
-  }
-  else {
-    DDRD |= 0b11100000;
-    PORTD |= 0b11100000;
-  }
+  DDRD |= 0b111000000;
+  PORTD |= 0b11100000;
   noInterrupts();
 }
 
