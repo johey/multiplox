@@ -1,4 +1,5 @@
 # Multiplox
+| N64           | <>    | <>    | <>    | <>    |       |       |       |       |
 Simplify management of multiple video game consoles, including joystick multiplexing, using Arduino based hardware nodes.
 
 *This project has just started. Nothing is usable until this line is removed.*
@@ -50,3 +51,26 @@ A Multiplox network consists of at least two and at most 16 units. Each unit nee
 The ID will be saved into the EEPROM of all plox units you have included in the configuration. Please note that any plox units you fail to configure will keep its' old ID, which might lead to ID conflicts in the network. This will not be detected as an error by the system, but there will be undefined behavior in the network.
 
 Please reconfigure the network every time you make a change, or if you experience any strange behavior. 
+
+## Mapping
+
+| System\Bit    | 0  | 1  | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  | a  | b  | c  | d  | e  | f  |
+|---------------|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+| Plox Standard | du | dr | dd | dl | st | se | b0 | b1 | b2 | b3 | b4 | b5 | b6 | b7 | tl | tr |
+| NES           | <> | <> | <> | <> | <> | <> | b  | a  |    |    |    |    |    |    |    |    |
+| SNES          | <> | <> | <> | <> | <> | <> | y  | b  | x  | a  |    |    |    |    | <> | <> |
+| SMS           | <> | <> | <> | <> | <> | <> | a  | b  |    |    |    |    |    |    |    |    |
+| SMD           | <> | <> | <> | <> | <> | <> | a  | b  | c  | x  | y  | z  |    |    |    |    |
+| N64           | <> | <> | <> | <> | <> | lt | b  | a  | y  | x  |    |    |    |    | <> | <> |
+| GC            | <> | <> | <> | <> | <> | lt | b  | a  | y  | x  |    |    |    |    | <> | <> |
+| Keyboard      | <> | <> | <> | <> | f1 | f2 | z  | x  | v  | b  | a  | s  | d  | f  | q  | e  |
+
+| System\Bit    | 10-17 | 18-1f | 20-27 | 28-2f | 30-33 | 34-37 | 38-3b | 3c-3f |
+|---------------|-------|-------|-------|-------|-------|-------|-------|-------|
+| Plox Standard | a0x   | a0y   | a1x   | a1y   | a0tl  | a0tr  | a1tl  | a1tr  |
+| NES           |       |       |       |       |       |       |       |       |
+| SNES          |       |       |       |       |       |       |       |       |
+| SMS           |       |       |       |       |       |       |       |       |
+| SMD           |       |       |       |       |       |       |       |       |
+| N64           | <>    | <>    | <>    | <>    |       |       |       |       |
+| Keyboard      | kc0   | kc1   | kc2   | kc3   |       |       |       |       |
