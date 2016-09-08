@@ -1,5 +1,5 @@
 # Multiplox
-| N64           | <>    | <>    | <>    | <>    |       |       |       |       |
+
 Simplify management of multiple video game consoles, including joystick multiplexing, using Arduino based hardware nodes.
 
 *This project has just started. Nothing is usable until this line is removed.*
