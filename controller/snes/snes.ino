@@ -39,8 +39,8 @@ void setup()
   CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
   pinMode(CAN0_INT, INPUT);   // Configuring pin for /INT input
 
-  DDRD |= 0b11100000;
-  PORTD |= 0b11100000;
+  DDRD |= 0b00011000;
+  PORTD |= 0b00011000;
   noInterrupts();
 }
 
