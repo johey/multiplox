@@ -6,11 +6,6 @@
 
 #define CAN0_INT 2    // Set INT to pin 2
 
-#define CTR_CLOCK  0b00001000   // Controller clock pin
-#define CTR_LATCH  0b00010000   // Controller latch pin
-#define CTR_DATA_0 0b00100000  // Controller 0 data pin
-#define CTR_DATA_1 0b01000000  // Controller 0 data pin
-
 #define CLK_I PIND
 #define CLK_B 0x08
 #define LTC_I PIND
@@ -84,10 +79,11 @@ boolean send_baseunit()
       while (!readBit(CLK_I, CLK_B)); // wait for clock low
       joy_data[j] <<= 1; // shift data
       setBit(*joy_o[j], joy_b[j], !(joy_data[j] & 0x8000));
-      while (readBit(PIND, CTR_CLOCK)); // wait for clock high
+      while (readBit(CLK_I, CLK_B)); // wait for clock high
     }
-    PORTD |= CTR_DATA_0;
+    setHigh(*joy_o[j], joy_b[j]);
   }
+  
   return true;
 }
 
