@@ -9,7 +9,7 @@
 #define CTR_CLOCK  0b00001000   // Controller clock pin
 #define CTR_LATCH  0b00010000   // Controller latch pin
 #define CTR_DATA_0 0b00100000  // Controller 0 data pin
-#define CTR_DATA_1 6  // Controller 1 data pin
+#define CTR_DATA_1 0b01000000  // Controller 1 data pin
 #define CTR_DATA_2 7  // Controller 2 data pin
 #define CTR_DATA_3 8  // Controller 3 data pin
 
