@@ -4,7 +4,7 @@
 #include <mcp_can.h>
 #include <SPI.h>
 
-#define CAN0_INT 2    // Set INT to pin 2
+#define CAN0_INT   0b00000100   // Set INT to pin 2
 
 #define CTR_CLOCK  0b00001000   // Controller clock pin
 #define CTR_LATCH  0b00010000   // Controller latch pin
@@ -14,7 +14,7 @@
 #define CTR_DATA_3 8  // Controller 3 data pin
 
 #define JOYS 2        // Number of joysticks/controllers
-#define CLOCKS 15     // Number of pulses to send to controllers
+#define CLOCKS 16     // Number of pulses to send to controllers
 #define DATA_WIDTH 2  // Number of bytes read from each controller
 
 long unsigned int rxId;
@@ -37,10 +37,9 @@ void setup()
     Serial.println("Error Initializing MCP2515...");
 
   CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
-  pinMode(CAN0_INT, INPUT);   // Configuring pin for /INT input
-
-  DDRD |= 0b111000000;
-  PORTD |= 0b11100000;
+  
+  DDRD |= 0b011100000;
+  PORTD |= 0b011100000;
   noInterrupts();
 }
 
@@ -49,21 +48,23 @@ boolean send_baseunit()
   unsigned int joy_data[JOYS];
   byte joy_pin[4] = {CTR_DATA_0, CTR_DATA_1, CTR_DATA_2, CTR_DATA_3};
 
+  joy_data[0] = g_joy_data[0];
+
+  //if (PIND & CTR_LATCH) PORTD &= ~CTR_DATA_0; else PORTD |= CTR_DATA_0;
+  //return;
+  
   if (!(PIND & CTR_LATCH))
     return false;
 
-  joy_data[0] = g_joy_data[0];
-
-  if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0; // write first data bit
-  else PORTD |= CTR_DATA_0;
   while (PIND & CTR_LATCH); // wait for latch to finish
-  for (int i = 0; i < CLOCKS; i++) {
+//    joy_data[0] <<= 1; // shift data
+
+  for (byte i = 0; i < CLOCKS; i++) {
+    if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0; else PORTD |= CTR_DATA_0;
     while (!(PIND & CTR_CLOCK)); // wait for clock low
+    while ((PIND & CTR_CLOCK)); // wait for clock high
     joy_data[0] <<= 1; // shift data
-    if (joy_data[0] & 0x8000) PORTD &= ~CTR_DATA_0;
-    else PORTD |= CTR_DATA_0;
-    delayMicroseconds(10);
-    while (PIND & CTR_CLOCK); // wait for clock high
+    //delayMicroseconds(3);
   }
 
   return true;
@@ -71,8 +72,11 @@ boolean send_baseunit()
 
 void loop()
 {
+  //send_baseunit();
+  //PORTD &= 0b11011111;
+  //return;
     //if(!digitalRead(CAN0_INT))                         // If CAN0_INT pin is low, read receive buffer
-    if (!(PIND & 0b00000100))
+    if (!(PIND & CAN0_INT))
     {
       //interrupts();
       CAN0.readMsgBuf(&rxId, &len, rxBuf);      // Read data: len = data length, buf = data byte(s)
@@ -106,9 +110,7 @@ void loop()
     }
     //*/
 
-    if (send_baseunit())
-    {
-    }
+    if (send_baseunit()) {}
 
 }
 
