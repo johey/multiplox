@@ -6,21 +6,26 @@
 
 #define CAN0_INT 2    // Set INT to pin 2
 
-#define CLK_I PIND
-#define CLK_B 0x08
-#define LTC_I PIND
-#define LTC_B 0x10
-#define DA0_O PORTD
-#define DA0_B 0x20
-#define DA1_O PORTB
-#define DA1_B 0x01
+typedef struct {
+  volatile uint8_t *port;
+  volatile uint8_t *pin;
+  byte bit;
+} table;
 
-#define setHigh(myPort, myBit) myPort |= myBit
-#define setLow(myPort, myBit) myPort &= ~myBit
-#define setBit(myPort, myBit, myVal) if (myVal) myPort |= myBit; else myPort &= ~myBit
+#define CTR0_CLK   (table) { &PORTD, &PIND,  0x08 }
+#define CTR0_LATCH (table) { &PORTD, &PIND,  0x10 }
+#define CTR0_DATA  (table) { &PORTD, &PIND,  0x20 }
+#define CTR1_CLK   (table) { &PORTD, &PIND,  0x40 }
+#define CTR1_LATCH (table) { &PORTD, &PIND,  0x80 }
+#define CTR1_DATA  (table) { &PORTB, &PINB,  0x01 }
+
+
+#define setHigh(x) *x.port |= x.bit
+#define setLow(x) *x.port &= ~x.bit
+#define setBit(x, val) {if (val) *(x.port) |= x.bit; else *(x.port) &= ~(x.bit);}
 
 #define toggle(myPort, myBit) myPort ^= myBit
-#define readBit(myPort, myBit) ((myPort & myBit) != 0)
+#define readBit(x) ((*x.pin & x.bit) != 0)
 
 #define JOYS 2        // Number of joysticks/controllers
 #define CLOCKS 8     // Number of pulses to send to controllers
@@ -48,40 +53,36 @@ void setup()
   CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
   pinMode(CAN0_INT, INPUT);   // Configuring pin for /INT input
 
-  DDRD |= DA0_B;
-  DDRB |= DA1_B;
-  setHigh(DA0_O, DA0_B);
-  setHigh(DA1_O, DA1_B);
+  DDRD |= CTR0_DATA.bit;
+  DDRB |= CTR1_DATA.bit;
+  setHigh(CTR0_DATA);
+  setHigh(CTR1_DATA);
   noInterrupts();
 }
 
 boolean send_baseunit()
 {
   unsigned int joy_data[JOYS];
-  byte *joy_o[JOYS] = {&DA0_O, &DA1_O};
-  byte joy_b[JOYS] = {DA0_B, DA1_B};
+  table joy[JOYS] = {CTR0_DATA, CTR1_DATA};
+  table clk[JOYS] = {CTR0_CLK, CTR1_CLK};
+  table latch[JOYS] = {CTR0_LATCH, CTR1_LATCH};
 
-  //if (!(PIND & CTR_LATCH))
-    //return false;
-  if (!readBit(LTC_I, LTC_B))
+  if (!readBit(latch[0]))
     return false;
-
-  setBit(*joy_o[1], joy_b[1], 0);
-  delayMicroseconds(3);
-  setBit(DA1_O, DA1_B, 1);
-
+   
   joy_data[0] = g_joy_data[0];
+  joy_data[1] = g_joy_data[1];
 
   for (byte j = 0; j < 1; j++) {
-    setBit(*joy_o[j], joy_b[j], !(joy_data[j] & 0x8000));
-    while (readBit(LTC_I, LTC_B)); // wait for latch to finish
+    setBit(joy[j], !(joy_data[j] & 0x8000));
+    while (readBit(latch[0])); // wait for latch to finish
     for (int i = 0; i < CLOCKS; i++) {
-      while (!readBit(CLK_I, CLK_B)); // wait for clock low
+      while (!readBit(clk[0]));
       joy_data[j] <<= 1; // shift data
-      setBit(*joy_o[j], joy_b[j], !(joy_data[j] & 0x8000));
-      while (readBit(CLK_I, CLK_B)); // wait for clock high
+      setBit(joy[j], !(joy_data[j] & 0x8000));
+      while (readBit(clk[0])); // wait for clock high
     }
-    setHigh(*joy_o[j], joy_b[j]);
+    setHigh(joy[j]);
   }
   
   return true;
