@@ -1,6 +1,3 @@
-// CAN Send Example
-//
-
 #include <mcp_can.h>
 #include <SPI.h>
 
@@ -24,8 +21,10 @@ typedef struct {
 #define setLow(x) *x.port &= ~x.bit
 #define setBit(x, val) {if (val) *(x.port) |= x.bit; else *(x.port) &= ~(x.bit);}
 
-#define toggle(myPort, myBit) myPort ^= myBit
+#define toggle(x) (*x.pin ^= x.bit)
 #define readBit(x) ((*x.pin & x.bit) != 0)
+#define isLow(x) ((*x.pin & x.bit) == 0)
+#define isHigh(x) ((*x.pin & x.bit) != 0)
 
 #define JOYS 2        // Number of joysticks/controllers
 #define CLOCKS 8     // Number of pulses to send to controllers
@@ -62,29 +61,45 @@ void setup()
 
 boolean send_baseunit()
 {
-  unsigned int joy_data[JOYS];
-  table joy[JOYS] = {CTR0_DATA, CTR1_DATA};
-  table clk[JOYS] = {CTR0_CLK, CTR1_CLK};
-  table latch[JOYS] = {CTR0_LATCH, CTR1_LATCH};
+  unsigned int data0, data1;
 
-  if (!readBit(latch[0]))
-    return false;
-   
-  joy_data[0] = g_joy_data[0];
-  joy_data[1] = g_joy_data[1];
+  data0 = g_joy_data[0];
+  data1 = g_joy_data[1];
 
-  for (byte j = 0; j < 1; j++) {
-    setBit(joy[j], !(joy_data[j] & 0x8000));
-    while (readBit(latch[0])); // wait for latch to finish
-    for (int i = 0; i < CLOCKS; i++) {
-      while (!readBit(clk[0]));
-      joy_data[j] <<= 1; // shift data
-      setBit(joy[j], !(joy_data[j] & 0x8000));
-      while (readBit(clk[0])); // wait for clock high
-    }
-    setHigh(joy[j]);
-  }
   
+  if (isLow(CTR0_LATCH))
+    return false;
+
+  
+  //while (isHigh(CTR0_LATCH)); // wait for latch to finish
+  data0 <<= 1; // shift data
+  data1 <<= 1;
+  
+  setBit(CTR0_DATA, !(data0 & 0x8000));
+  setBit(CTR1_DATA, !(data1 & 0x8000));
+
+  for (byte p0 = 0, p1 = 0; p0 < 8 && p1 < 8;) {
+    while (1) {
+      if (isLow(CTR1_CLK)) {
+        while (isLow(CTR1_CLK));
+        data1 <<= 1;
+        setBit(CTR1_DATA, !(data1 & 0x8000));
+        p1++;
+        break;
+      }
+      if (isLow(CTR0_CLK)) {
+        while (isLow(CTR0_CLK));
+        data0 <<= 1;
+        setBit(CTR0_DATA, !(data0 & 0x8000));
+        p0++;
+        break;
+      }
+    }
+  }
+
+  //setHigh(CTR0_DATA);
+  //setHigh(CTR1_DATA);
+
   return true;
 }
 
@@ -115,12 +130,12 @@ void loop()
         }
         g_joy_data[i] = joy_data;
         //g_joy_data[i] = joy_data >> 8 | (joy_data << 8);
-        sprintf(msgString, "joy_data[%d]: 0x%x", i, g_joy_data[i]);
-        Serial.println(msgString);
+        //sprintf(msgString, "joy_data[%d]: 0x%x", i, g_joy_data[i]);
+        //Serial.println(msgString);
       }
     }
 
-    Serial.println();
+    //Serial.println();
   }
   //*/
 
