@@ -11,8 +11,8 @@ I've been thinking of different solutions to the problem, finally coming up with
 
 ## Design Goals
 * One size fits all - only one kind of plox units. System specific connection via breakout cable
-* Breakout cable identify itself, letting the plox unit know details about the system
-* Single power source shared between all nodes in the multiplox network
+* (Breakout cable identify itself, letting the plox unit know details about the system ... /To be reconsidered/)
+* (Single power source shared between all nodes in the multiplox network ... /To be reconsidered/)
 * ...
 
 ## Implementation
@@ -26,9 +26,8 @@ Communication between plox units is based on CAN with standard 11 bits ID and up
 ### ID
 | Bit  | Description                                           |
 |------|-------------------------------------------------------|
-| 0-3  | Sending unit ID. Lower has priority.                  |
-| 4-7  | Receiving unit ID. Use sending unit ID for broadcast. |
-| 8    | Message Type: 0 = _Into_, 1 = _Action_                |
+| 0-7  | Sending unit ID. Lower has priority.                  |
+| 8    | Message Type: 0 = _Meta_, 1 = _Action_                |
 | 9-10 | Controller number 0, 1, 2 or 3.                       |
 
 The Message Type can be either _Meta_ or _Action_. _Meta_ is used for handshaking, configuration, status messages etc, while _Action_ is the actual controller data.
@@ -38,6 +37,11 @@ _Buttons_ has a defined set of digital and analog buttons in a fixed order. Any 
 Contrary, some controllers have other buttons or features not defined in the standard protocol. If there is an intersection between the standard definition and the present buttons, the controller can still send a standard message. All other signals need to be sent with the special protocol type. This means 
 
 ### Data
+
+### Communication Diagram
+
+
+Console
 
 ## Configuration
 A Multiplox network consists of at least two and at most 16 units. Each unit needs a unique ID between 0 to 15. To setup the unit IDs, you 
@@ -53,18 +57,32 @@ The ID will be saved into the EEPROM of all plox units you have included in the 
 Please reconfigure the network every time you make a change, or if you experience any strange behavior. 
 
 ## Mapping
+Describing the mapping of controllers to base units. First a table of short names.
 
-| System\Bit    |  0-3 | 4  | 5  | 6  | 7  | 8  | 9  | a  | b  | c  | d  | e  | f  |
-|---------------|------|----|----|----|----|----|----|----|----|----|----|----|----|
-| Plox Standard | urdl | st | se | b0 | b1 | b2 | b3 | b4 | b5 | b6 | b7 | tl | tr |
-| NES           | <>   | <> | <> | b  | a  |    |    |    |    |    |    |    |    |
-| SNES          | <>   | <> | <> | y  | b  | x  | a  |    |    |    |    | <> | <> |
-| N64           | <>   | <> | lt | b  | a  | y  | x  |    |    |    |    | <> | <> |
-| GC            | <>   | <> | lt | b  | a  | y  | x  |    |    |    |    | <> | <> |
-| SMS           | <>   | <> | <> | a  | b  |    |    |    |    |    |    |    |    |
-| SMD           | <>   | <> | <> | a  | b  | c  | x  | y  | z  |    |    |    |    |
-| Saturn        | <>   | ?  | ?  | ?  | ?  | ?  | ?  | ?  | ?  | ?  | ?  | ?  | ?  |
-| Keyboard      | <>   | f1 | f2 | z  | x  | v  | b  | a  | s  | d  | f  | q  | e  |
+| Name     | Description                                      |
+|----------|--------------------------------------------------|
+| urdl     | D-pad: up, right, down, left                     |
+| b0-b7    | Generic button names                             |
+| a-z 0-9  | Button names as labeled on controllers           |
+| st sl    | Start and select                                 |
+| :x       | Autofire of x, where x can be any of above names |
+| :< :>    | Slower or faster autofire of depressed button    |
+
+### Controller
+| System\Bit    |  0-3 | 4   | 5   | 6   | 7   | 8   | 9   | a   | b   | c   | d   | e   | f   |
+|---------------|------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| Plox Standard | urdl | st  | se  | b0  | b1  | b2  | b3  | b4  | b5  | b6  | b7  | tl  | tr  |
+| Atari         | <>   |     |     | 1   |     |     |     |     |     |     |     |     |     |
+| CD32          | <>   | ply |     | red | grn | blu | yel |     |     |     |     | <>  | <>  |
+| NES           | <>   | <>  | <>  | b   | a   |     |     |     |     |     |     |     |     |
+| SNES          | <>   | <>  | <>  | y   | b   | x   | a   |     |     |     |     | <>  | <>  |
+| N64           | <>   | <>  | lt  | b   | a   | y   | x   |     |     |     |     | <>  | <>  |
+| GC            | <>   | <>  | lt  | b   | a   | y   | x   |     |     |     |     | <>  | <>  |
+| SMS           | <>   |     |     | 1   | 2   |     |     |     |     |     |     |     |     |
+| SMD           | <>   | <>  | c   | a   | b   | x   | y   | z   |     |     |     |     |     |
+| Saturn        | <>   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   |
+| Keyboard      | <>   | f1  | f2  | z   | x   | c   | v   | a   | s   | d   | f   | q   | e   |
+| Mouse         | <>   |     |     | lmb | rmb | mmb |     |     |     |     |     |     |     |
 
 | System\Bit    | 10-17 | 18-1f | 20-27 | 28-2f | 30-33 | 34-37 | 38-3b | 3c-3f |
 |---------------|-------|-------|-------|-------|-------|-------|-------|-------|
@@ -77,3 +95,34 @@ Please reconfigure the network every time you make a change, or if you experienc
 | SMD           |       |       |       |       |       |       |       |       |
 | Saturn        |       |       |       |       |       |       |       |       |
 | Keyboard      | kc0   | kc1   | kc2   | kc3   |       |       |       |       |
+| Mouse         | xspd  | yspd  |       |       |       |       |       |       |
+
+Please note that for analog directions, values are signed int where up/right are represented by positive values and down/left by negative values. The value 0 means no movement.
+
+### Base Unit
+| System\Bit    |  0-3 | 4   | 5   | 6   | 7   | 8   | 9   | a   | b   | c   | d   | e   | f   |
+|---------------|------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| Plox Standard | urdl | st  | se  | b0  | b1  | b2  | b3  | b4  | b5  | b6  | b7  | tl  | tr  |
+| Atari         | <>   |     |     | 1   |     |     |     |     |     |     |     |     |     |
+| CD32          | <>   | ply |     | red | grn | blu | yel |     |     |     |     | <>  | <>  |
+| NES           | <>   | <>  | <>  | b   | a   |     |     |     |     |     |     |     |     |
+| SNES          | <>   | <>  | <>  | y   | b   | x   | a   |     |     |     |     | <>  | <>  |
+| N64           | <>   | <>  | lt  | b   | a   | y   | x   |     |     |     |     | <>  | <>  |
+| GC            | <>   | <>  | lt  | b   | a   | y   | x   |     |     |     |     | <>  | <>  |
+| SMS           | <>   |     |     | 1   | 2   |     |     |     |     |     |     |     |     |
+| SMD           | <>   | <>  | c   | a   | b   | x   | y   | z   |     |     |     |     |     |
+| Saturn        | <>   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   |
+| Keyboard      | <>   | f1  | f2  | z   | x   | v   | b   | a   | s   | d   | f   | q   | e   |
+
+| System\Bit    | 10-17 | 18-1f | 20-27 | 28-2f | 30-33 | 34-37 | 38-3b | 3c-3f |
+|---------------|-------|-------|-------|-------|-------|-------|-------|-------|
+| Plox Standard | a0x   | a0y   | a1x   | a1y   | a0tl  | a0tr  | a1tl  | a1tr  |
+| NES           |       |       |       |       |       |       |       |       |
+| SNES          |       |       |       |       |       |       |       |       |
+| N64           | <>    | <>    | <>    | <>    |       |       |       |       |
+| GC            | <>    | <>    | <>    | <>    |       |       |       |       |
+| SMS           |       |       |       |       |       |       |       |       |
+| SMD           |       |       |       |       |       |       |       |       |
+| Saturn        |       |       |       |       |       |       |       |       |
+| Keyboard      | kc0   | kc1   | kc2   | kc3   |       |       |       |       |
+
