@@ -26,7 +26,7 @@ Communication between plox units is based on CAN with standard 11 bits ID and up
 ### ID
 | Bit  | Description                                           |
 |------|-------------------------------------------------------|
-| 0-7  | Sending unit ID. Lower has priority.                  |
+| 0-7  | Receiving unit ID. Lower has priority.                  |
 | 8    | Message Type: 0 = _Meta_, 1 = _Action_                |
 | 9-10 | Controller number 0, 1, 2 or 3.                       |
 
@@ -36,12 +36,24 @@ _Buttons_ has a defined set of digital and analog buttons in a fixed order. Any 
 
 Contrary, some controllers have other buttons or features not defined in the standard protocol. If there is an intersection between the standard definition and the present buttons, the controller can still send a standard message. All other signals need to be sent with the special protocol type. This means 
 
+### Handshaking
+In order to receive _Action_ messages, a base plox must have an active subscription with one or more controller plox units. The subscription must be renewed every four seconds and will timeout after six seconds. Issuing subscriptions is the responsibility of controller plox units. A base plox must listen to either global _Meta_ messages if no subscription is active, or subscribed _Action_ messages. This is an exclusive or. It must never listen to global and subscribed messages at the same time.
+
 ### Data
 
 ### Communication Diagram
 
+### Instant Connection
 
-Console
+Four wires can be configured for direct communication between a controller to a base unit. Useful for low latency applications such as light guns. There are a few caveats:
+* To use the Instant Connection, two units must agree to do so. All other units must ignore the signals. 
+* After agreement to use a wire, this wire is globally locked until agreement is cancelled. 
+* Protocol translation in software is not possible. Hence, there can be no universal lightgun.
+
+Agreement to set up an Instant Connection is done via a CAN _Meta_ message. The plox unit with the controller initiates the connection and the currently active base unit plox must agree or deny.
+
+#### Canelling Agreement
+The Instant Connection agreement has a fairly short life time and must be actively reissued, otherwise cancelled. The timeout is yet to be decided, but a renegociation should be held approximately every four seconds and the agreement cancelled after six seconds.
 
 ## Configuration
 A Multiplox network consists of at least two and at most 16 units. Each unit needs a unique ID between 0 to 15. To setup the unit IDs, you 
@@ -67,33 +79,30 @@ Describing the mapping of controllers to base units. First a table of short name
 | st sl    | Start and select                                 |
 | :x       | Autofire of x, where x can be any of above names |
 | :< :>    | Slower or faster autofire of depressed button    |
+| !x       | Plox button plus x on controller                 |
 
 ### Controller
 | System\Bit    |  0-3 | 4   | 5   | 6   | 7   | 8   | 9   | a   | b   | c   | d   | e   | f   |
 |---------------|------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
 | Plox Standard | urdl | st  | se  | b0  | b1  | b2  | b3  | b4  | b5  | b6  | b7  | tl  | tr  |
 | Atari         | <>   |     |     | 1   |     |     |     |     |     |     |     |     |     |
-| CD32          | <>   | ply |     | red | grn | blu | yel |     |     |     |     | <>  | <>  |
+| CD32          | <>   | ply | !pl | red | grn | blu | yel |     |     |     |     | <>  | <>  |
 | NES           | <>   | <>  | <>  | b   | a   |     |     |     |     |     |     |     |     |
 | SNES          | <>   | <>  | <>  | y   | b   | x   | a   |     |     |     |     | <>  | <>  |
+| AES           | <>   | <>  | <>  | a   | b   | c   | d   |     |     |     |     |     |     |
 | N64           | <>   | <>  | lt  | b   | a   | y   | x   |     |     |     |     | <>  | <>  |
 | GC            | <>   | <>  | lt  | b   | a   | y   | x   |     |     |     |     | <>  | <>  |
-| SMS           | <>   |     |     | 1   | 2   |     |     |     |     |     |     |     |     |
+| SMS           | <>   | !1  | !2  | 1   | 2   |     |     |     |     |     |     |     |     |
 | SMD           | <>   | <>  | c   | a   | b   | x   | y   | z   |     |     |     |     |     |
 | Saturn        | <>   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   | ?   |
 | Keyboard      | <>   | f1  | f2  | z   | x   | c   | v   | a   | s   | d   | f   | q   | e   |
-| Mouse         | <>   |     |     | lmb | rmb | mmb |     |     |     |     |     |     |     |
+| Mouse         | <>   | !lm | !rm | lmb | rmb | mmb |     |     |     |     |     |     |     |
 
 | System\Bit    | 10-17 | 18-1f | 20-27 | 28-2f | 30-33 | 34-37 | 38-3b | 3c-3f |
 |---------------|-------|-------|-------|-------|-------|-------|-------|-------|
 | Plox Standard | a0x   | a0y   | a1x   | a1y   | a0tl  | a0tr  | a1tl  | a1tr  |
-| NES           |       |       |       |       |       |       |       |       |
-| SNES          |       |       |       |       |       |       |       |       |
 | N64           | <>    | <>    | <>    | <>    |       |       |       |       |
 | GC            | <>    | <>    | <>    | <>    |       |       |       |       |
-| SMS           |       |       |       |       |       |       |       |       |
-| SMD           |       |       |       |       |       |       |       |       |
-| Saturn        |       |       |       |       |       |       |       |       |
 | Keyboard      | kc0   | kc1   | kc2   | kc3   |       |       |       |       |
 | Mouse         | xspd  | yspd  |       |       |       |       |       |       |
 
