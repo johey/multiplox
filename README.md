@@ -26,7 +26,7 @@ Communication between plox units is based on CAN with standard 11 bits ID and up
 ### ID
 | Bit  | Description                                           |
 |------|-------------------------------------------------------|
-| 0-7  | Receiving unit ID. Lower has priority.                  |
+| 0-7  | Receiving unit ID. Lower has priority.                |
 | 8    | Message Type: 0 = _Meta_, 1 = _Action_                |
 | 9-10 | Controller number 0, 1, 2 or 3.                       |
 
@@ -39,6 +39,27 @@ Contrary, some controllers have other buttons or features not defined in the sta
 ### Handshaking
 In order to receive _Action_ messages, a base plox must have an active subscription with one or more controller plox units. The subscription must be renewed every four seconds and will timeout after six seconds. Issuing subscriptions is the responsibility of controller plox units. A base plox must listen to either global _Meta_ messages if no subscription is active, or subscribed _Action_ messages. This is an exclusive or. It must never listen to global and subscribed messages at the same time.
 
+A controller plox will always listen to all messages and decide from case to case what is relevant.
+
+### Meta Messages
+
+SID: ID of Sending Unit
+RID: ID of Receiving Unit
+
+| Message | Data (number of bits in parentheses) | Description                     |
+|---------|--------------------------------------|---------------------------------|
+| 0x00    |                                      | Enter ID Setup                  |
+| 0x01    | (8) New ID of last configured unit   | Configure ID                    |
+| 0x02    |                                      | Exit Setup                      |
+| 0x10    | (8) SID, (8) RID                     | Subscribe                       |
+| 0x20    | (8) SID, (8) RID, (16) Hardware ID   | Instant Connection Subscription |
+
+### Configuration of Unit ID's
+
+All units in the multiplox network must have a unique ID. The ID can be changed using a setup protocol. Any unit can initiate setup by sending _Meta_ message 0x00 (typically by long-pressing the button of the first unit). Whenever a setup is issued, all units must enter setup mode. In setup mode, each unit should register its ID sequencially by sending _Meta_ message 0x01 with its decired ID. The ID to send should be calculated as an increment of the last received ID. After each unit is configured, the setup should be confirmed by _Meta_ message 0x02.
+
+The user is responsible for completing the setup process. The system cannot verify that each unit has a unique ID.
+
 ### Data
 
 ### Communication Diagram
@@ -48,12 +69,14 @@ In order to receive _Action_ messages, a base plox must have an active subscript
 Four wires can be configured for direct communication between a controller to a base unit. Useful for low latency applications such as light guns. There are a few caveats:
 * To use the Instant Connection, two units must agree to do so. All other units must ignore the signals. 
 * After agreement to use a wire, this wire is globally locked until agreement is cancelled. 
-* Protocol translation in software is not possible. Hence, there can be no universal lightgun.
+* Protocol translation in software is not possible. Hence, there can be no universal lightgun (though it might work if different light guns share the same protocol).
 
 Agreement to set up an Instant Connection is done via a CAN _Meta_ message. The plox unit with the controller initiates the connection and the currently active base unit plox must agree or deny.
 
 #### Canelling Agreement
 The Instant Connection agreement has a fairly short life time and must be actively reissued, otherwise cancelled. The timeout is yet to be decided, but a renegociation should be held approximately every four seconds and the agreement cancelled after six seconds.
+
+A subscription can also be actively cancelled by a controller plox.
 
 ## Configuration
 A Multiplox network consists of at least two and at most 16 units. Each unit needs a unique ID between 0 to 15. To setup the unit IDs, you 
@@ -134,4 +157,29 @@ Please note that for analog directions, values are signed int where up/right are
 | SMD           |       |       |       |       |       |       |       |       |
 | Saturn        |       |       |       |       |       |       |       |       |
 | Keyboard      | kc0   | kc1   | kc2   | kc3   |       |       |       |       |
+
+## Hardware
+Hardware tables for compatibility mapping, mainly for Instant Connection. First table is for base plox' and second is for controller plox'.
+
+| Name               | ID   |
+|--------------------|------|
+| Nintendo NES       | 0x00 |  
+| Nintendo SNES      | 0x01 |  
+| Atari VCS          | 0x02 |  
+| Atari 400/800      | 0x03 |  
+| Atari ST           | 0x04 |
+| Amiga              | 0x05 |
+| Neo Geo AES        | 0x06 |
+| Nintendo N64       | 0x07 |
+| Nintendo GC        | 0x08 |
+| Sega SMS           | 0x09 |
+| Sega MD/Genesis    | 0x10 |
+| Sega DC            | 0x11 |
+| Sega Saturn        | 0x12 |
+
+| Name                | ID   | Compatibility List |
+|---------------------|------|--------------------|
+| Nintendo Zapper     | 0x00 | 0x00               |
+| Sega Light Phaser   | 0x01 | 0x09, 0x02?, 0x03? |
+| Atari XG-1          | 0x02 | 0x02, 0x03, 0x09?  |
 
