@@ -1,10 +1,5 @@
-// CAN Send Example
-//
-
 #include <mcp_can.h>
 #include <SPI.h>
-
-#define CAN0_INT 2    // Set INT to pin 2
 
 #define CTR_CLOCK  0b00001000   // Controller clock pin
 #define CTR_LATCH  0b00010000   // Controller latch pin
@@ -21,7 +16,9 @@ long unsigned int rxId;
 unsigned char len = 0;
 unsigned char rxBuf[8];
 char msgString[128];                        // Array to store serial string
-MCP_CAN CAN0(10);     // Set CS to pin 10
+
+#define CAN0_INT 2                              // Set INT to pin 2
+MCP_CAN CAN0(10);                               // Set CS to pin 10
 
 unsigned int g_joy_data[JOYS];
 byte g_can_data[JOYS * DATA_WIDTH];
@@ -44,7 +41,6 @@ void setup()
   noInterrupts();
 }
 
-// We cannot use shiftIn() function from arduino, as we need to be able to do things in parallel.
 boolean read_controllers()
 {
   unsigned int joy_data[4] = {0, 0, 0, 0};
@@ -88,31 +84,43 @@ boolean read_controllers()
   return changed;
 }
 
+void waitForUnitRequest() {
+  while (PIND & 0b00000100);
+  CAN0.readMsgBuf(&rxId, &len, rxBuf);      // Read data: len = data length, buf = data byte(s)
+        sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
+  
+    Serial.println(msgString);
+}
+
+void sendToUnit() {
+  // Convert joystick data from 32 bit int to 8 bit data array
+  for (int j = 0; j < JOYS; j++)
+  {
+    int joy_data = g_joy_data[j];
+    for (int i = DATA_WIDTH - 1; i >= 0; i--)
+    {
+      g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
+      joy_data >>= 8;
+    }
+    sprintf(msgString, "joy_data(%d): 0x%x", j, g_joy_data[j]);
+    Serial.println(msgString);
+
+  }
+
+  // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
+  byte sndStat = CAN0.sendMsgBuf(0x100, 0, JOYS * DATA_WIDTH, g_can_data);
+  if(sndStat == CAN_OK) {
+    //Serial.println("Message Sent Successfully!");
+  } else {
+    //Serial.println("Error Sending Message...");
+  }
+}
+
+
 void loop()
 {
-  if (read_controllers())
-  {
-    // Convert joystick data from 32 bit int to 8 bit data array
-    for (int j = 0; j < JOYS; j++)
-    {
-      int joy_data = g_joy_data[j];
-      for (int i = DATA_WIDTH - 1; i >= 0; i--)
-      {
-        g_can_data[(j * DATA_WIDTH) + i] = (byte)(joy_data & 0xff);
-        joy_data >>= 8;
-      }
-      //sprintf(msgString, "joy_data(%d): 0x%x", j, g_joy_data[j]);
-      //Serial.println(msgString);
-
-    }
-
-    // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
-    byte sndStat = CAN0.sendMsgBuf(0x100, 0, JOYS * DATA_WIDTH, g_can_data);
-    if(sndStat == CAN_OK) {
-      //Serial.println("Message Sent Successfully!");
-    } else {
-      //Serial.println("Error Sending Message...");
-    }
-  }
+  waitForUnitRequest();
+  read_controllers();
+  sendToUnit();
 }
 
